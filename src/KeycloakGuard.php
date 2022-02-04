@@ -5,6 +5,7 @@ use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redis;
 use KeycloakGuard\Exceptions\TokenException;
 use KeycloakGuard\Exceptions\UserNotFoundException;
 use KeycloakGuard\Exceptions\ResourceAccessNotAllowedException;
@@ -121,6 +122,14 @@ class KeycloakGuard implements Guard
       return false;
     }
 
+    // check in block-list after logout
+    // cause after logout in Keycloak token steel will be validatable before expires (!) max near 1-hour
+    // we block token by "jti" (uniq id of token) and check it,
+    // all jti-s stored in Redis
+    if ( $this->isTokenBlocked() ) {
+        return false;
+    }
+
     $this->validateResources();
 
     if ($this->config['load_user_from_database']) {
@@ -138,6 +147,52 @@ class KeycloakGuard implements Guard
 
     return true;
   }
+
+    /**
+     * Check is token blocked (after logout) already
+     *
+     * @return bool
+    */
+    public function isTokenBlocked(): bool
+    {
+        if (!$this->decodedToken) {
+            return false;
+        }
+
+        // get uniq token ID
+        $token_uid = $this->decodedToken->jti;
+
+        // store
+        $expires = Redis::get('jwt-'.$token_uid);
+
+        // token blocked
+        if ( isset($expires) and $expires > time() ) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    /**
+     * Block token with uniq token ID (jti) -> store in Redis
+     *
+     * @return bool
+     */
+    public function blockToken()
+    {
+        if (!$this->decodedToken) {
+            return false;
+        }
+
+        // get uniq token ID
+        $token_uid = $this->decodedToken->jti;
+
+        // store
+        Redis::set('jwt-'.$token_uid, time()+3609);
+
+        return true;
+    }
 
   /**
    * Set the current user.
