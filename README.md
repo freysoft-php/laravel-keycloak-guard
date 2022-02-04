@@ -1,7 +1,4 @@
 <p align="center">
-  <img src="bird.png">  
-</p>
-<p align="center">
 &nbsp;
         <img src="https://img.shields.io/packagist/v/robsontenorio/laravel-keycloak-guard.svg" />
         <img src="https://img.shields.io/packagist/dt/robsontenorio/laravel-keycloak-guard.svg" />
@@ -60,7 +57,7 @@ This package helps you authenticate users on a Laravel API based on JWT tokens g
 Require the package
 
 ```
-composer require robsontenorio/laravel-keycloak-guard
+composer require freysoft-php/laravel-keycloak-guard
 ```
 
 ### Lumen only
